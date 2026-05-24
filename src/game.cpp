@@ -1,12 +1,76 @@
 #include "game.h"
 
-Game::Game() : m_rng(std::random_device{}()),
-               m_board(kRows, kCols, kNColors, m_rng)
-{}
+#include "projectile.hpp"
+#include "utils/random.hpp"
+
+#include <iostream>
+#include <string>
+
+namespace
+{
+    constexpr std::size_t kMinGroupSize = 3;
+} // namespace
+
+Game::Game() : m_board(kRows, kCols, kNColors)
+{
+}
 
 void Game::printBoard(std::ostream &out) const
 {
     m_board.print(out);
 }
 
+void Game::loop()
+{
+    std::string input;
 
+    while (true)
+    {
+        std::cout << "Choose an angle (20-160) or type 'exit': ";
+
+        if (!std::getline(std::cin, input))
+        {
+            std::cout << "\nInput closed. Exiting game loop.\n";
+            break;
+        }
+
+        if (input == "exit")
+        {
+            std::cout << "Exiting game loop.\n";
+            break;
+        }
+
+        try
+        {
+            const double angle = std::stod(input);
+
+            if (angle < 20.0 || angle > 160.0)
+            {
+                std::cout << "Invalid angle. Please choose a value from 20 to 160.\n";
+                continue;
+            }
+            
+            const BubbleColor projectileColor = static_cast<BubbleColor>(randomColor(kNColors));
+     
+            const auto attached = Projectile::shoot(m_board, angle, projectileColor);
+
+            if (!attached.has_value())
+            {
+                std::cout << "Shot could not be attached to the grid. Try a different angle.\n";
+                continue;
+            }
+
+            const int removed = m_board.clearConnectedGroup(attached->first, attached->second, kMinGroupSize);
+            if (removed > 0)
+            {
+                std::cout << "Matched and removed " << removed << " bubbles.\n";
+            }
+
+            printBoard(std::cout);
+        }
+        catch (...)
+        {
+            std::cout << "Invalid input. Enter an angle like 75 or type 'exit'.\n";
+        }
+    }
+}

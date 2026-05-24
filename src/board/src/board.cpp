@@ -1,0 +1,195 @@
+
+#include "board.hpp"
+#include "utils/random.hpp"
+
+#include <algorithm>
+#include <deque>
+#include <ostream>
+#include <stdexcept>
+
+Board::Board(std::size_t rows, std::size_t cols, std::size_t nColors) : m_rows(rows),
+                                                                        m_cols(cols),
+                                                                        m_board(rows * cols, BubbleColor::None)
+{
+    // Only the top rows so projectiles have room to travel.
+    const std::size_t init_filled_rows = std::min<std::size_t>(3, m_rows);
+
+    for (std::size_t row = 0; row < init_filled_rows; ++row)
+    {
+        for (std::size_t col = 0; col < m_cols; ++col)
+        {
+            m_board[index(row, col)] = static_cast<BubbleColor>(randomColor(nColors));
+        }
+    }
+}
+
+void Board::print(std::ostream &out) const
+{
+    out << "  ";
+    for (std::size_t col = 0; col < m_cols; ++col)
+    {
+        out << col << ' ';
+    }
+    out << '\n';
+
+    for (std::size_t row = 0; row < m_rows; ++row)
+    {
+        if ((row % 2) != 0)
+        {
+            out << ' ';
+        }
+
+        out << row << ' ';
+        for (std::size_t col = 0; col < m_cols; ++col)
+        {
+            out << colorToChar(m_board[index(row, col)]) << ' ';
+        }
+        out << '\n';
+    }
+}
+
+std::size_t Board::rows() const noexcept
+{
+    return m_rows;
+}
+
+std::size_t Board::cols() const noexcept
+{
+    return m_cols;
+}
+
+bool Board::inBounds(int row, int col) const noexcept
+{
+    return row >= 0 && col >= 0 && static_cast<std::size_t>(row) < m_rows && static_cast<std::size_t>(col) < m_cols;
+}
+
+bool Board::isEmpty(int row, int col) const noexcept
+{
+    if (!inBounds(row, col))
+    {
+        return false;
+    }
+
+    return m_board[index(static_cast<std::size_t>(row), static_cast<std::size_t>(col))] == BubbleColor::None;
+}
+
+BubbleColor Board::get(std::size_t row, std::size_t col) const
+{
+    return m_board[index(row, col)];
+}
+
+void Board::set(std::size_t row, std::size_t col, BubbleColor color)
+{
+    m_board[index(row, col)] = color;
+}
+
+std::vector<std::pair<int, int>> Board::hexNeighbors(int row, int col) const
+{
+    static constexpr std::pair<int, int> kEvenRowOffsets[] = {
+        {-1, -1}, {-1, 0}, {0, -1}, {0, 1}, {1, -1}, {1, 0}};
+
+    static constexpr std::pair<int, int> kOddRowOffsets[] = {
+        {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, 0}, {1, 1}};
+
+    const auto &offsets = ((row % 2) == 0) ? kEvenRowOffsets : kOddRowOffsets;
+
+    std::vector<std::pair<int, int>> result;
+    result.reserve(6);
+    for (const auto &[dRow, dCol] : offsets)
+    {
+        const int nextRow = row + dRow;
+        const int nextCol = col + dCol;
+
+        if (inBounds(nextRow, nextCol))
+        {
+            result.emplace_back(nextRow, nextCol);
+        }
+    }
+
+    return result;
+}
+
+int Board::clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::size_t minGroupSize)
+{
+    const BubbleColor target = get(startRow, startCol);
+    if (target == BubbleColor::None)
+    {
+        return 0;
+    }
+
+    const std::size_t total = m_rows * m_cols;
+    std::vector<bool> visited(total, false);
+    std::vector<std::size_t> group;
+    std::deque<std::pair<int, int>> queue;
+
+    queue.emplace_back(static_cast<int>(startRow), static_cast<int>(startCol));
+    visited[index(startRow, startCol)] = true;
+
+    while (!queue.empty())
+    {
+        const auto [row, col] = queue.front();
+        queue.pop_front();
+
+        const std::size_t currentIndex = index(static_cast<std::size_t>(row), static_cast<std::size_t>(col));
+        group.push_back(currentIndex);
+
+        for (const auto &[nRow, nCol] : hexNeighbors(row, col))
+        {
+            const std::size_t neighborIndex = index(static_cast<std::size_t>(nRow), static_cast<std::size_t>(nCol));
+            if (visited[neighborIndex])
+            {
+                continue;
+            }
+
+            if (m_board[neighborIndex] != target)
+            {
+                continue;
+            }
+
+            visited[neighborIndex] = true;
+            queue.emplace_back(nRow, nCol);
+        }
+    }
+
+    if (group.size() < minGroupSize)
+    {
+        return 0;
+    }
+
+    for (const std::size_t cellIndex : group)
+    {
+        m_board[cellIndex] = BubbleColor::None;
+    }
+
+    return static_cast<int>(group.size());
+}
+
+std::size_t Board::index(std::size_t row, std::size_t col) const
+{
+    if (row >= m_rows || col >= m_cols)
+    {
+        throw std::out_of_range("Board index out of range");
+    }
+
+    return row * m_cols + col;
+}
+
+char Board::colorToChar(BubbleColor color)
+{
+    switch (color)
+    {
+    case BubbleColor::Red:
+        return 'A';
+    case BubbleColor::Green:
+        return 'B';
+    case BubbleColor::Blue:
+        return 'C';
+    case BubbleColor::Yellow:
+        return 'D';
+    case BubbleColor::Purple:
+        return 'E';
+    case BubbleColor::None:
+    default:
+        return '.';
+    }
+}
