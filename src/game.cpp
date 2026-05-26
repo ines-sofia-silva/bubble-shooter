@@ -60,11 +60,8 @@ void Game::loop()
                 continue;
             }
 
-            const int removed = m_board.clearConnectedGroup(attached->first, attached->second, kMinGroupSize);
-            if (removed > 0)
-            {
-                std::cout << "Matched and removed " << removed << " bubbles.\n";
-            }
+            m_board.clearConnectedGroup(attached->first, attached->second, kMinGroupSize);
+            
 
             printBoard(std::cout);
         }

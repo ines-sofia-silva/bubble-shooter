@@ -116,11 +116,13 @@ std::vector<std::pair<int, int>> Board::hexNeighbors(int row, int col) const
 int Board::clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::size_t minGroupSize)
 {
     const BubbleColor target = get(startRow, startCol);
+    // Nothing to clear when the selected cell is already empty.
     if (target == BubbleColor::None)
     {
         return 0;
     }
 
+    // Flood-fill all same-colored bubbles connected to the start cell.
     const std::size_t total = m_rows * m_cols;
     std::vector<bool> visited(total, false);
     std::vector<std::size_t> group;
@@ -155,17 +157,77 @@ int Board::clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::
         }
     }
 
+    // Do not pop groups smaller than the match threshold.
     if (group.size() < minGroupSize)
     {
         return 0;
     }
 
+    // Remove the matched component, then let unsupported bubbles fall.
     for (const std::size_t cellIndex : group)
     {
         m_board[cellIndex] = BubbleColor::None;
     }
 
+    clearDetachedBubbles();
     return static_cast<int>(group.size());
+}
+
+int Board::clearDetachedBubbles()
+{
+    // Mark all bubbles reachable from the top row; those are structurally supported.
+    const std::size_t total = m_rows * m_cols;
+    std::vector<bool> connectedToTop(total, false);
+    std::deque<std::pair<int, int>> queue;
+
+    // Seed BFS with every non-empty top-row bubble (the only anchors).
+    for (std::size_t col = 0; col < m_cols; ++col)
+    {
+        const std::size_t topIndex = index(0, col);
+        if (m_board[topIndex] == BubbleColor::None)
+        {
+            continue;
+        }
+
+        connectedToTop[topIndex] = true;
+        queue.emplace_back(0, static_cast<int>(col));
+    }
+
+    // Traverse through non-empty hex neighbors to mark all anchored bubbles.
+    while (!queue.empty())
+    {
+        const auto [row, col] = queue.front();
+        queue.pop_front();
+
+        for (const auto &[nRow, nCol] : hexNeighbors(row, col))
+        {
+            const std::size_t neighborIndex = index(static_cast<std::size_t>(nRow), static_cast<std::size_t>(nCol));
+            if (connectedToTop[neighborIndex] || m_board[neighborIndex] == BubbleColor::None)
+            {
+                continue;
+            }
+
+            connectedToTop[neighborIndex] = true;
+            queue.emplace_back(nRow, nCol);
+        }
+    }
+
+    // Any remaining non-empty bubble is detached and should be cleared.
+    int removed = 0;
+    for (std::size_t row = 0; row < m_rows; ++row)
+    {
+        for (std::size_t col = 0; col < m_cols; ++col)
+        {
+            const std::size_t cellIndex = index(row, col);
+            if (m_board[cellIndex] != BubbleColor::None && !connectedToTop[cellIndex])
+            {
+                m_board[cellIndex] = BubbleColor::None;
+                ++removed;
+            }
+        }
+    }
+
+    return removed;
 }
 
 std::size_t Board::index(std::size_t row, std::size_t col) const

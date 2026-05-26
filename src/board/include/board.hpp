@@ -96,6 +96,11 @@ public:
     int clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::size_t minGroupSize);
 
 private:
+    /**
+     * @brief Clears bubbles not connected to the top row.
+     * @return Number of detached bubbles cleared.
+     */
+    int clearDetachedBubbles();
     std::size_t index(std::size_t row, std::size_t col) const;
     static char colorToChar(BubbleColor color);
 

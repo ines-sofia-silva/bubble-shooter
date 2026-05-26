@@ -28,7 +28,8 @@ TEST(BoardTest, SetAndGetWorks) {
     EXPECT_EQ(board.get(2, 3), BubbleColor::Red);
 }
 
-TEST(BoardTest, IsEmpty) {
+TEST(BoardTest, IsEmpty)
+{
     // Checks empty-cell semantics and that out-of-bounds queries are never treated as empty.
     Board board(8, 8, 4);
 
@@ -43,7 +44,8 @@ TEST(BoardTest, IsEmpty) {
     EXPECT_FALSE(board.isEmpty(0, 8));
 }
 
-TEST(BoardTest, HexNeighborsForEvenRowCenter) {
+TEST(BoardTest, HexNeighborsForEvenRowCenter)
+{
     // Validates even-row hex neighbor topology (offset pattern differs by row parity).
     Board board(8, 8, 4);
     board.print(std::cout);
@@ -58,7 +60,8 @@ TEST(BoardTest, HexNeighborsForEvenRowCenter) {
     EXPECT_NE(std::find(neighbors.begin(), neighbors.end(), std::make_pair(5, 4)), neighbors.end());
 }
 
-TEST(BoardTest, HexNeighborsForOddRowCenter) {
+TEST(BoardTest, HexNeighborsForOddRowCenter)
+{
     // Validates odd-row hex neighbor topology.
     Board board(8, 8, 4);
     const auto neighbors = board.hexNeighbors(5, 4); // odd row
@@ -72,7 +75,8 @@ TEST(BoardTest, HexNeighborsForOddRowCenter) {
     EXPECT_NE(std::find(neighbors.begin(), neighbors.end(), std::make_pair(6, 5)), neighbors.end());
 }
 
-TEST(BoardTest, HexNeighborsAtTopLeftCorner) {
+TEST(BoardTest, HexNeighborsAtTopLeftCorner)
+{
     // Corner cells should only return in-bounds neighbors.
     Board board(8, 8, 4);
     const auto neighbors = board.hexNeighbors(0, 0);
@@ -82,29 +86,34 @@ TEST(BoardTest, HexNeighborsAtTopLeftCorner) {
     EXPECT_NE(std::find(neighbors.begin(), neighbors.end(), std::make_pair(1, 0)), neighbors.end());
 }
 
-TEST(BoardTest, ClearConnectedGroupReturnsZeroForEmptyStartCell) {
+TEST(BoardTest, ClearConnectedGroupEmptyCell)
+{
     // Clearing should be a no-op when starting on an empty cell.
     Board board(8, 8, 4);
     EXPECT_EQ(board.clearConnectedGroup(7, 7, 3), 0);
 }
 
-TEST(BoardTest, ClearConnectedGroupRespectsMinimumSize) {
+TEST(BoardTest, ClearConnectedGroupRespectsMinimumSize)
+{
     // A connected component smaller than threshold must remain unchanged.
     Board board(8, 8, 4);
     board.set(7, 0, BubbleColor::Green);
     board.set(7, 1, BubbleColor::Green);
+    board.print(std::cout);
 
     EXPECT_EQ(board.clearConnectedGroup(7, 0, 3), 0);
     EXPECT_EQ(board.get(7, 0), BubbleColor::Green);
     EXPECT_EQ(board.get(7, 1), BubbleColor::Green);
 }
 
-TEST(BoardTest, ClearConnectedGroupClearsWhenMinimumReached) {
+TEST(BoardTest, ClearConnectedGroupClearsWhenMinimumReached)
+{
     // A connected component meeting threshold should be removed and counted.
     Board board(8, 8, 4);
     board.set(6, 3, BubbleColor::Yellow);
     board.set(6, 4, BubbleColor::Yellow);
     board.set(7, 3, BubbleColor::Yellow);
+    board.print(std::cout);
 
     EXPECT_EQ(board.clearConnectedGroup(6, 3, 3), 3);
     EXPECT_TRUE(board.isEmpty(6, 3));
@@ -112,7 +121,29 @@ TEST(BoardTest, ClearConnectedGroupClearsWhenMinimumReached) {
     EXPECT_TRUE(board.isEmpty(7, 3));
 }
 
-TEST(BoardTest, OutOfRangeIndices) {
+TEST(BoardTest, ClearConnectedGroupDetachedBubble)
+{
+    // Removing a matching group can detach lower bubbles that should then drop.
+    Board board(8, 8, 4);
+    board.set(3, 3, BubbleColor::Yellow);
+    board.set(3, 4, BubbleColor::Yellow);
+    board.set(3, 5, BubbleColor::Yellow);
+    board.set(4, 4, BubbleColor::Green);
+    board.set(5, 4, BubbleColor::Blue);
+    board.print(std::cout);
+
+    EXPECT_EQ(board.clearConnectedGroup(3, 3, 3), 3);
+    EXPECT_TRUE(board.isEmpty(3, 3));
+    EXPECT_TRUE(board.isEmpty(3, 4));
+    EXPECT_TRUE(board.isEmpty(3, 5));
+    EXPECT_TRUE(board.isEmpty(4, 4));
+    EXPECT_TRUE(board.isEmpty(5, 4));
+    
+    board.print(std::cout);
+}
+
+TEST(BoardTest, OutOfRangeIndices)
+{
     // Public accessors should enforce index safety through exceptions.
     Board board(8, 8, 4);
 
