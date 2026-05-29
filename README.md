@@ -7,6 +7,7 @@ The current version is an early command-line prototype that generates and prints
 
 - Language: C++17
 - Build system: CMake (minimum 3.20)
+// sudo apt-get update && sudo apt-install cmake  && sudo apt-get install -y libgtest-dev
 - Executable target: `game`
 - Platform: Linux (works on other platforms with a C++17 compiler)
 

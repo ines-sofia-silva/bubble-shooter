@@ -2,11 +2,10 @@
 #include <cstdint>
 #include <cstddef>
 #include <unordered_map>
+#include <random>
 
 namespace Bubble
 {
-
-
     /**
      * @brief Enum representing possible bubble colors.
      */
@@ -60,6 +59,7 @@ namespace Bubble
     
         std::unordered_map<Color, std::size_t> m_counts;
         std::size_t m_n_colors{Color::Purple + 1};
+        std::mt19937 m_rng;
     };
 
 }

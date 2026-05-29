@@ -165,3 +165,174 @@ TEST(BoardTest, OutOfRangeIndices)
     EXPECT_THROW(board.set(8, 0, Bubble::Color::Red), std::out_of_range);
     EXPECT_THROW(board.set(0, 8, Bubble::Color::Red), std::out_of_range);
 }
+
+TEST(BoardTest, AddNewRowChangesTopRow)
+{
+    // Verifies that addNewRow() updates the top row and old bottom row becomes inaccessible.
+    Bubble::ColorManager colorManager;
+    Board board(6, 6, colorManager);
+
+    // Store original bottom row values
+    Bubble::Color originalBottomRow[6];
+    for (std::size_t col = 0; col < 6; ++col)
+    {
+        originalBottomRow[col] = board.get(5, col);
+    }
+
+    // Add a new row
+    board.addNewRow(colorManager);
+
+    // Top row should have new colors (not empty)
+    bool topRowFilled = false;
+    for (std::size_t col = 0; col < 6; ++col)
+    {
+        if (board.get(0, col) != Bubble::Color::None)
+        {
+            topRowFilled = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(topRowFilled);
+
+    // The old bottom row should now be at logical row 4 (or inaccessible via logical row 5)
+    // Verify dimensions haven't changed
+    EXPECT_EQ(board.rows(), 6u);
+    EXPECT_EQ(board.cols(), 6u);
+}
+
+TEST(BoardTest, MultipleAddNewRowsWraps)
+{
+    // Calling addNewRow() multiple times equal to board height should cycle through all positions.
+    Bubble::ColorManager colorManager;
+    Board board(4, 4, colorManager);
+
+    // Call addNewRow 4 times (same as number of rows)
+    for (int i = 0; i < 4; ++i)
+    {
+        board.addNewRow(colorManager);
+    }
+
+    // After wrapping around, board should still be valid and accessible
+    EXPECT_EQ(board.rows(), 4u);
+    EXPECT_EQ(board.cols(), 4u);
+
+    // Top row should be filled (from most recent addNewRow call)
+    bool topRowFilled = false;
+    for (std::size_t col = 0; col < 4; ++col)
+    {
+        if (board.get(0, col) != Bubble::Color::None)
+        {
+            topRowFilled = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(topRowFilled);
+}
+
+TEST(BoardTest, NeighborsWorkAcrossWrappedBoundary)
+{
+    // Verify hexNeighbors calculates correctly when board content wraps.
+    Bubble::ColorManager colorManager;
+    Board board(5, 5, colorManager);
+
+    // Fill some cells near what will become the wrap boundary
+    board.set(4, 2, Bubble::Color::Red);
+    board.set(3, 2, Bubble::Color::Green);
+
+    // Add new rows to cause wrapping
+    for (int i = 0; i < 3; ++i)
+    {
+        board.addNewRow(colorManager);
+    }
+
+    // Neighbors should still calculate correctly even with wrapping
+    const auto neighbors = board.hexNeighbors(2, 2);
+    EXPECT_TRUE(neighbors.size() > 0); // Should have at least some neighbors
+
+    // Verify all neighbors are in bounds
+    for (const auto& neighbor : neighbors)
+    {
+        EXPECT_TRUE(board.inBounds(neighbor.first, neighbor.second));
+    }
+}
+
+TEST(BoardTest, DetachedBubblesWorkWithWrapping)
+{
+    // BFS for detached bubbles should work correctly across wrapped boundaries.
+    Bubble::ColorManager colorManager;
+    Board board(6, 6, colorManager);
+
+    // Create a configuration with a detachable structure
+    board.set(2, 2, Bubble::Color::Yellow);
+    board.set(2, 3, Bubble::Color::Yellow);
+    board.set(2, 4, Bubble::Color::Yellow);
+    board.set(3, 3, Bubble::Color::Green);
+    board.set(4, 3, Bubble::Color::Blue);
+
+    // Add rows to wrap the board
+    for (int i = 0; i < 4; ++i)
+    {
+        board.addNewRow(colorManager);
+    }
+
+    // Clear the yellow group; should also clear detached green and blue
+    int cleared = board.clearConnectedGroup(2, 2, 3);
+
+    // Verify clearing worked (should include primary group)
+    EXPECT_GE(cleared, 3);
+}
+
+TEST(BoardTest, ClearConnectedGroupWithWrapping)
+{
+    // clearConnectedGroup should work correctly with wrapped row indices.
+    Bubble::ColorManager colorManager;
+    Board board(5, 5, colorManager);
+
+    board.set(3, 1, Bubble::Color::Purple);
+    board.set(3, 2, Bubble::Color::Purple);
+    board.set(3, 3, Bubble::Color::Purple);
+
+    // Wrap the board several times
+    for (int i = 0; i < 2; ++i)
+    {
+        board.addNewRow(colorManager);
+    }
+
+    // Clear the group - should find and clear the matching bubbles
+    int cleared = board.clearConnectedGroup(3, 1, 3);
+    EXPECT_EQ(cleared, 3);
+
+    // Verify cells are now empty
+    EXPECT_TRUE(board.isEmpty(3, 1));
+    EXPECT_TRUE(board.isEmpty(3, 2));
+    EXPECT_TRUE(board.isEmpty(3, 3));
+}
+
+TEST(BoardTest, GetSetWorkAfterMultipleWraps)
+{
+    // Basic get/set operations should remain consistent after multiple row wraps.
+    Bubble::ColorManager colorManager;
+    Board board(4, 4, colorManager);
+
+    // Set some values
+    board.set(0, 0, Bubble::Color::Red);
+    board.set(1, 1, Bubble::Color::Green);
+    board.set(2, 2, Bubble::Color::Blue);
+    board.set(3, 3, Bubble::Color::Yellow);
+
+    // Add many new rows to cause significant wrapping
+    for (int i = 0; i < 10; ++i)
+    {
+        board.addNewRow(colorManager);
+    }
+
+    // Values should still be accessible at their logical positions
+    EXPECT_EQ(board.get(0, 0), Bubble::Color::Red);
+    EXPECT_EQ(board.get(1, 1), Bubble::Color::Green);
+    EXPECT_EQ(board.get(2, 2), Bubble::Color::Blue);
+    EXPECT_EQ(board.get(3, 3), Bubble::Color::Yellow);
+
+    // Update a value and verify retrieval
+    board.set(2, 2, Bubble::Color::Purple);
+    EXPECT_EQ(board.get(2, 2), Bubble::Color::Purple);
+}

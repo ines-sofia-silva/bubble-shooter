@@ -1,9 +1,8 @@
 #include "bubble_color.hpp"
-#include <random>
 
 namespace Bubble {
 
-ColorManager::ColorManager()
+ColorManager::ColorManager(): m_rng(std::random_device{}())
 {
     m_counts.reserve(m_n_colors - 1);
     // Initialize all color counts to 0.
@@ -19,7 +18,7 @@ Color ColorManager::getColor()
     Color new_color = randomColor();
 
     // Keep rolling until a color not currently tracked in m_counts is found.
-    while (m_counts.find(new_color) != m_counts.end())
+    while (m_counts.find(new_color) == m_counts.end())
     {
         new_color = randomColor();
     }
@@ -35,8 +34,8 @@ void ColorManager::removeColor(Color &color)
 
 Color ColorManager::randomColor()
 {
-    static std::mt19937 rng(std::random_device{}());
-    double r = std::generate_canonical<double, 32>(rng);
+    
+    double r = std::generate_canonical<double, 32>(m_rng);
     Color new_color = static_cast<Color>(1 + static_cast<int>(r * (m_n_colors - 1)));
     // Return the first available color.
     m_counts[new_color] ++;

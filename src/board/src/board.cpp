@@ -260,7 +260,23 @@ char Board::colorToChar(Bubble::Color color)
     }
 }
 
-// The relative offsets for neighbors are derived based on the staggered layout of hexagonal grids.
-// In even rows, the top-left and bottom-left neighbors shift one column left.
-// In odd rows, the top-right and bottom-right neighbors shift one column right.
-// This ensures that each cell has up to 6 neighbors, and the layout alternates by row parity.
+
+void Board::addNewRow(Bubble::ColorManager &colorManager)
+{
+    // Shift all rows down by one (from bottom to top to avoid overwriting data)
+    for (int row = static_cast<int>(m_rows) - 1; row > 0; --row)
+    {
+        for (std::size_t col = 0; col < m_cols; ++col)
+        {
+            const std::size_t sourceIndex = index(static_cast<std::size_t>(row - 1), col);
+            const std::size_t destIndex = index(static_cast<std::size_t>(row), col);
+            m_board[destIndex] = m_board[sourceIndex];
+        }
+    }
+
+    // Fill the top row with random colors
+    for (std::size_t col = 0; col < m_cols; ++col)
+    {
+        m_board[index(0, col)] = colorManager.randomColor();
+    }
+}

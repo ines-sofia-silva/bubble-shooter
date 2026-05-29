@@ -19,6 +19,19 @@ void Game::printBoard(std::ostream &out) const
     m_board.print(out);
 }
 
+bool Game::isGameOver() const
+{
+    // Check if any bubble reached the bottom row
+    for (std::size_t col = 0; col < kCols; ++col)
+    {
+        if (m_board.get(kRows - 1, col) != Bubble::Color::None)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Game::loop()
 {
     std::string input;
@@ -48,19 +61,40 @@ void Game::loop()
                 std::cout << "Invalid angle. Please choose a value from 20 to 160.\n";
                 continue;
             }
-            
+
             const Bubble::Color projectileColor = m_colorManager.getColor();
-     
+
             const auto attached = Projectile::shoot(m_board, angle, projectileColor);
 
             if (!attached.has_value())
             {
                 std::cout << "Shot could not be attached to the grid. Try a different angle.\n";
-                continue;
+                
             }
 
-            m_board.clearConnectedGroup(attached->first, attached->second, kMinGroupSize);
+            int cleared_bubbles = m_board.clearConnectedGroup(attached->first, attached->second, kMinGroupSize);
+            std::cout << "Cleared " << cleared_bubbles << " bubbles.\n";
             
+            if (cleared_bubbles == 0)
+            {
+                ++m_missCount;
+                std::cout << "No bubbles cleared. Try a different angle.\n";
+            }else{
+                m_missCount = 0; // Reset miss counter on successful shot
+            }
+
+            if (m_missCount >= kMissesBeforeNewRow)
+            {
+                std::cout << "Too many misses! A new row appears at the top.\n";
+                m_board.addNewRow(m_colorManager);
+                m_missCount = 0;
+            }
+
+            if (isGameOver())
+            {
+                std::cout << "Game Over! Bubbles reached the bottom.\n";
+                break;
+            }
 
             printBoard(std::cout);
         }

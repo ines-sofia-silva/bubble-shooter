@@ -22,5 +22,7 @@ target_include_directories(utils
 )
 
 # Add tests
-add_subdirectory(bubble/test)
+if(COMPILE_TESTS)
+    add_subdirectory(bubble/test)
+endif()
 

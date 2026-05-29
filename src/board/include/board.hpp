@@ -84,6 +84,12 @@ public:
      */
     int clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::size_t minGroupSize);
 
+    /**
+     * @brief Adds a new row of bubbles at the top and shifts existing rows down.
+     * @param colorManager Reference to ColorManager for generating random colors.
+     */
+    void addNewRow(Bubble::ColorManager &colorManager);
+
 private:
     /**
      * @brief Clears bubbles not connected to the top row.
