@@ -4,6 +4,7 @@
 #include <iosfwd>
 #include <utility>
 #include <vector>
+#include <deque>
 
 #include "bubble/include/bubble_color.hpp"
 
@@ -96,11 +97,10 @@ private:
      * @return Number of detached bubbles cleared.
      */
     int clearDetachedBubbles();
-    std::size_t index(std::size_t row, std::size_t col) const;
     static char colorToChar(Bubble::Color color);
 
     std::size_t m_rows;
     std::size_t m_cols;
-    std::vector<Bubble::Color> m_board;
+    std::deque<std::vector<Bubble::Color>> m_board;
     Bubble::ColorManager &m_colorManager;
 };

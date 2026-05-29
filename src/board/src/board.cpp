@@ -6,9 +6,9 @@
 #include <stdexcept>
 
 Board::Board(std::size_t rows, std::size_t cols, Bubble::ColorManager &colorManager) : m_rows(rows),
-                                                                                      m_cols(cols),
-                                                                                      m_board(rows * cols, Bubble::Color::None),
-                                                                                      m_colorManager(colorManager)
+                                                                                       m_cols(cols),
+                                                                                       m_board(rows, std::vector<Bubble::Color>(cols, Bubble::Color::None)),
+                                                                                       m_colorManager(colorManager)
 {
     // Only the top rows so projectiles have room to travel.
     const std::size_t init_filled_rows = std::min<std::size_t>(3, m_rows);
@@ -17,7 +17,7 @@ Board::Board(std::size_t rows, std::size_t cols, Bubble::ColorManager &colorMana
     {
         for (std::size_t col = 0; col < m_cols; ++col)
         {
-            m_board[index(row, col)] = m_colorManager.randomColor();
+            m_board[row][col] = m_colorManager.randomColor();
         }
     }
 }
@@ -41,7 +41,7 @@ void Board::print(std::ostream &out) const
         out << row << ' ';
         for (std::size_t col = 0; col < m_cols; ++col)
         {
-            out << colorToChar(m_board[index(row, col)]) << ' ';
+            out << colorToChar(m_board[row][col]) << ' ';
         }
         out << '\n';
     }
@@ -69,17 +69,17 @@ bool Board::isEmpty(int row, int col) const noexcept
         return false;
     }
 
-    return m_board[index(static_cast<std::size_t>(row), static_cast<std::size_t>(col))] == Bubble::Color::None;
+    return m_board[row][col] == Bubble::Color::None;
 }
 
 Bubble::Color Board::get(std::size_t row, std::size_t col) const
 {
-    return m_board[index(row, col)];
+    return m_board[row][col];
 }
 
 void Board::set(std::size_t row, std::size_t col, Bubble::Color color)
 {
-    m_board[index(row, col)] = color;
+    m_board[row][col] = color;
 }
 
 std::vector<std::pair<int, int>> Board::hexNeighbors(int row, int col) const
@@ -124,35 +124,33 @@ int Board::clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::
 
     // Flood-fill all same-colored bubbles connected to the start cell.
     const std::size_t total = m_rows * m_cols;
-    std::vector<bool> visited(total, false);
-    std::vector<std::size_t> group;
+    std::vector<std::vector<bool>> visited(m_rows, std::vector<bool>(m_cols, false));
+    std::vector<std::pair<std::size_t, std::size_t>> group;
     std::deque<std::pair<int, int>> queue;
 
     queue.emplace_back(static_cast<int>(startRow), static_cast<int>(startCol));
-    visited[index(startRow, startCol)] = true;
+    visited[startRow][startCol] = true;
 
     while (!queue.empty())
     {
         const auto [row, col] = queue.front();
         queue.pop_front();
 
-        const std::size_t currentIndex = index(static_cast<std::size_t>(row), static_cast<std::size_t>(col));
-        group.push_back(currentIndex);
+        group.push_back({row, col});
 
         for (const auto &[nRow, nCol] : hexNeighbors(row, col))
         {
-            const std::size_t neighborIndex = index(static_cast<std::size_t>(nRow), static_cast<std::size_t>(nCol));
-            if (visited[neighborIndex])
+            if (visited[nRow][nCol])
             {
                 continue;
             }
 
-            if (m_board[neighborIndex] != target)
+            if (m_board[nRow][nCol] != target)
             {
                 continue;
             }
 
-            visited[neighborIndex] = true;
+            visited[nRow][nCol] = true;
             queue.emplace_back(nRow, nCol);
         }
     }
@@ -164,9 +162,9 @@ int Board::clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::
     }
 
     // Remove the matched component, then let unsupported bubbles fall.
-    for (const std::size_t cellIndex : group)
+    for (const auto &[row, col] : group)
     {
-        m_colorManager.removeColor(m_board[cellIndex]);
+        m_colorManager.removeColor(m_board[row][col]);
     }
 
     clearDetachedBubbles();
@@ -177,19 +175,18 @@ int Board::clearDetachedBubbles()
 {
     // Mark all bubbles reachable from the top row; those are structurally supported.
     const std::size_t total = m_rows * m_cols;
-    std::vector<bool> connectedToTop(total, false);
+    std::vector<std::vector<bool>> connectedToTop(m_rows, std::vector<bool>(m_cols, false));
     std::deque<std::pair<int, int>> queue;
 
     // Seed BFS with every non-empty top-row bubble (the only anchors).
     for (std::size_t col = 0; col < m_cols; ++col)
     {
-        const std::size_t topIndex = index(0, col);
-        if (m_board[topIndex] == Bubble::Color::None)
+        if (m_board[0][col] == Bubble::Color::None)
         {
             continue;
         }
 
-        connectedToTop[topIndex] = true;
+        connectedToTop[0][col] = true;
         queue.emplace_back(0, static_cast<int>(col));
     }
 
@@ -201,13 +198,12 @@ int Board::clearDetachedBubbles()
 
         for (const auto &[nRow, nCol] : hexNeighbors(row, col))
         {
-            const std::size_t neighborIndex = index(static_cast<std::size_t>(nRow), static_cast<std::size_t>(nCol));
-            if (connectedToTop[neighborIndex] || m_board[neighborIndex] == Bubble::Color::None)
+            if (connectedToTop[nRow][nCol] || m_board[nRow][nCol] == Bubble::Color::None)
             {
                 continue;
             }
 
-            connectedToTop[neighborIndex] = true;
+            connectedToTop[nRow][nCol] = true;
             queue.emplace_back(nRow, nCol);
         }
     }
@@ -218,10 +214,9 @@ int Board::clearDetachedBubbles()
     {
         for (std::size_t col = 0; col < m_cols; ++col)
         {
-            const std::size_t cellIndex = index(row, col);
-            if (m_board[cellIndex] != Bubble::Color::None && !connectedToTop[cellIndex])
+            if (m_board[row][col] != Bubble::Color::None && !connectedToTop[row][col])
             {
-                m_colorManager.removeColor(m_board[cellIndex]);
+                m_colorManager.removeColor(m_board[row][col]);
                 ++removed;
             }
         }
@@ -230,53 +225,34 @@ int Board::clearDetachedBubbles()
     return removed;
 }
 
-std::size_t Board::index(std::size_t row, std::size_t col) const
-{
-    if (row >= m_rows || col >= m_cols)
-    {
-        throw std::out_of_range("Board index out of range");
-    }
-
-    return row * m_cols + col;
-}
-
 char Board::colorToChar(Bubble::Color color)
 {
     switch (color)
     {
     case Bubble::Color::Red:
-        return 'A';
+        return 'R';
     case Bubble::Color::Green:
-        return 'B';
+        return 'G';
     case Bubble::Color::Blue:
-        return 'C';
+        return 'B';
     case Bubble::Color::Yellow:
-        return 'D';
+        return 'Y';
     case Bubble::Color::Purple:
-        return 'E';
+        return 'P';
     case Bubble::Color::None:
     default:
         return '.';
     }
 }
 
-
 void Board::addNewRow(Bubble::ColorManager &colorManager)
 {
-    // Shift all rows down by one (from bottom to top to avoid overwriting data)
-    for (int row = static_cast<int>(m_rows) - 1; row > 0; --row)
-    {
-        for (std::size_t col = 0; col < m_cols; ++col)
-        {
-            const std::size_t sourceIndex = index(static_cast<std::size_t>(row - 1), col);
-            const std::size_t destIndex = index(static_cast<std::size_t>(row), col);
-            m_board[destIndex] = m_board[sourceIndex];
-        }
-    }
 
-    // Fill the top row with random colors
+    // Create new row
+    std::vector<Bubble::Color> newRow(m_cols);
     for (std::size_t col = 0; col < m_cols; ++col)
     {
-        m_board[index(0, col)] = colorManager.randomColor();
+        newRow[col] = colorManager.randomColor();
     }
+    m_board.push_front(newRow);
 }

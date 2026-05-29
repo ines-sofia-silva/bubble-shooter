@@ -78,7 +78,7 @@ void Game::loop()
             if (cleared_bubbles == 0)
             {
                 ++m_missCount;
-                std::cout << "No bubbles cleared. Try a different angle.\n";
+                std::cout << "No bubbles cleared. Number of misses: " << m_missCount << ". Try a different angle.\n";
             }else{
                 m_missCount = 0; // Reset miss counter on successful shot
             }
