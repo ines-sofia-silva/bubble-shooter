@@ -74,11 +74,19 @@ bool Board::isEmpty(int row, int col) const noexcept
 
 Bubble::Color Board::get(std::size_t row, std::size_t col) const
 {
+    if (!inBounds(static_cast<int>(row), static_cast<int>(col)))
+    {
+        throw std::out_of_range("Board::get: indices out of range");
+    }
     return m_board[row][col];
 }
 
 void Board::set(std::size_t row, std::size_t col, Bubble::Color color)
 {
+    if (!inBounds(static_cast<int>(row), static_cast<int>(col)))
+    {
+        throw std::out_of_range("Board::set: indices out of range");
+    }
     m_board[row][col] = color;
 }
 
