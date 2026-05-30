@@ -16,6 +16,8 @@
 #include <memory>
 #include <optional>
 #include <cmath>
+#include "sdl2_primitives.hpp"
+#include "grid_utils.hpp"
 
 /**
  * @brief Real-time projectile visualization data.
@@ -190,87 +192,9 @@ public:
     int getWindowHeight() const { return m_windowHeight; }
 
 private:
-    // ===== Private Rendering Helpers =====
-    /**
-     * @brief Draws a line segment between two points in screen coordinates.
-     * @param x1 Start point x coordinate.
-     * @param y1 Start point y coordinate.
-     * @param x2 End point x coordinate.
-     * @param y2 End point y coordinate.
-     * @param color SDL color for the line.
-     */
-    void drawLine(double x1, double y1, double x2, double y2, const SDL_Color& color);
-    /**
-     * @brief Draws a circle at the specified screen position.
-     * @param centerX Circle center x coordinate in pixels.
-     * @param centerY Circle center y coordinate in pixels.
-     * @param radius Radius of the circle in pixels.
-     * @param color SDL color for the circle.
-     * @param filled If true, draws filled circle; if false, draws outline only.
-     */
-    void drawCircle(int centerX, int centerY, int radius, const SDL_Color& color, bool filled = true);
-    /**
-     * @brief Draws a rectangle in screen space.
-     * @param x Top-left x coordinate in pixels.
-     * @param y Top-left y coordinate in pixels.
-     * @param w Width of rectangle in pixels.
-     * @param h Height of rectangle in pixels.
-     * @param color SDL color for the rectangle.
-     * @param filled If true, draws filled rectangle; if false, draws outline.
-     */
-    void drawRect(int x, int y, int w, int h, const SDL_Color& color, bool filled = true);
-    /**
-     * @brief Converts a game bubble color to SDL2 color format.
-     * @param color The bubble color enumeration value.
-     * @return Corresponding SDL_Color with RGB and alpha values.
-     */
-    SDL_Color bubbleColorToSDL(Bubble::Color color) const;
-
-    // ===== Coordinate Transformation Helpers =====
-    /**
-     * @brief Recalculates the hexagonal grid layout based on current window size.
-     *
-     * Computes grid positioning, cell sizes, and launcher position based on
-     * the window dimensions. Called during init() and on window resize.
-     */
-    void calculateGridLayout();
-    /**
-     * @brief Transforms a screen pixel position to hexagonal grid coordinates.
-     *
-     * Converts from window coordinates to logical grid coordinates, accounting
-     * for the hexagonal layout and row offset pattern.
-     *
-     * @param screenX Screen x coordinate in pixels.
-     * @param screenY Screen y coordinate in pixels.
-     * @param gridRow Output grid row index.
-     * @param gridCol Output grid column index.
-     * @return True if the position is within the grid bounds, false otherwise.
-     */
-    bool screenToGridCoord(int screenX, int screenY, int& gridRow, int& gridCol) const;
-    /**
-     * @brief Converts integer hexagonal grid coordinates to screen position.
-     *
-     * Transforms logical grid coordinates to window pixels, accounting for
-     * hexagonal geometry and row offset adjustments.
-     *
-     * @param gridRow Row index in the game grid.
-     * @param gridCol Column index in the game grid.
-     * @param screenX Output screen x coordinate in pixels.
-     * @param screenY Output screen y coordinate in pixels.
-     */
-    void hexGridToScreenCoord(const int &gridRow, const int &gridCol, int &screenX, int &screenY) const;
-    /**
-     * @brief Converts floating-point grid coordinates to screen position.
-     *
-     * Transforms continuous (floating-point) grid coordinates to screen pixels.
-     * Useful for projectile rendering and smooth movement.
-     *
-     * @param gridRow Row coordinate (can be fractional).
-     * @param gridCol Column coordinate (can be fractional).
-     * @param screenX Output screen x coordinate in pixels.
-     * @param screenY Output screen y coordinate in pixels.
-     */
-    void gridToScreenCoord(const double &gridRow, const double &gridCol, int &screenX, int &screenY) const;
+    // helper objects encapsulate drawing and grid calculations
+    std::unique_ptr<SDL2Primitives> m_primitives;
+    std::unique_ptr<GridUtils> m_gridUtils;
     /**
      * @brief Computes the launch angle from the launcher to the mouse cursor.
      *
@@ -288,16 +212,7 @@ private:
     int m_windowWidth{0};                  ///< Window width in pixels.
     int m_windowHeight{0};                 ///< Window height in pixels.
 
-    // ===== Hexagonal Grid Layout =====
-    int m_hexSize{};                     ///< Size of each hexagon cell in pixels.
-    int m_gridStartX{0};                   ///< Left edge of grid area in window.
-    int m_gridStartY{0};                   ///< Top edge of grid area in window.
-    int m_gridWidth{0};                    ///< Total width of grid area in pixels.
-    int m_gridHeight{0};                   ///< Total height of grid area in pixels.
-
-    // ===== Launcher Configuration =====
-    int m_launcherX{0};                    ///< Launcher position x coordinate in pixels.
-    int m_launcherY{0};                    ///< Launcher position y coordinate in pixels.
+    // grid and launcher state are encapsulated in GridUtils
 
     // ===== Input State =====
     int m_mouseX{0};                       ///< Current mouse x position in window.

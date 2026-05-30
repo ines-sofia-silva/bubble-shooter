@@ -2,6 +2,8 @@ find_package(SDL2 REQUIRED)
 
 add_library(renderer
     src/sdl2_renderer.cpp
+    src/sdl2_primitives.cpp
+    src/grid_utils.cpp
 )
 
 target_include_directories(renderer PUBLIC include)

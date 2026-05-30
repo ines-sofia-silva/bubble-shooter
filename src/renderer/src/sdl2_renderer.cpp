@@ -4,7 +4,11 @@
 #include <algorithm>
 #include "game_settings.hpp"
 
-SDL2Renderer::SDL2Renderer() = default;
+SDL2Renderer::SDL2Renderer()
+        : m_primitives(std::make_unique<SDL2Primitives>()),
+            m_gridUtils(std::make_unique<GridUtils>())
+{
+}
 
 SDL2Renderer::~SDL2Renderer()
 {
@@ -55,19 +59,20 @@ bool SDL2Renderer::init(int windowWidth, int windowHeight, const char *title)
                            BACKGROUND_COLOR.b, BACKGROUND_COLOR.a);
     SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_BLEND);
 
-    
+    // wire helpers
+    if (m_primitives)
+        m_primitives->setRenderer(m_renderer);
+    if (m_gridUtils)
+        m_gridUtils->init(m_windowWidth, m_windowHeight);
+
     m_isRunning = true;
 
     return true;
 }
 
 void SDL2Renderer::initGameSettings() {
-
-    m_hexSize = std::min(m_windowWidth / (GameSettings::Cols * 1.5), m_windowHeight / (GameSettings::Rows * 1.5));
-    calculateGridLayout();
-    double launcher_grid_x = (static_cast<double>(GameSettings::Cols) - 1.0) / 2.0,
-           launcher_grid_y = static_cast<double>(GameSettings::Rows) - 1.0;
-    hexGridToScreenCoord(launcher_grid_y, launcher_grid_x, m_launcherX, m_launcherY);
+    if (m_gridUtils)
+        m_gridUtils->init(m_windowWidth, m_windowHeight);
 }
 
 void SDL2Renderer::shutdown()
@@ -102,140 +107,7 @@ void SDL2Renderer::present()
     }
 }
 
-void SDL2Renderer::calculateGridLayout()
-{
-    // Assuming 8x8 board (from Game constants)
-    int hexWidth = static_cast<int>(m_hexSize); // Width of hexagon
-    int hexHeight = m_hexSize;                  // Height of hexagon
-
-    // Calculate grid dimensions
-    m_gridWidth = hexWidth * GameSettings::Cols;   // Account for hex packing
-    m_gridHeight = hexHeight * GameSettings::Rows; // Vertical packing
-
-    // Center grid on screen
-    m_gridStartX = (m_windowWidth - m_gridWidth) / 2;
-    m_gridStartY = (m_windowHeight - m_gridHeight) / 3; // Place upper than center
-}
-
-void SDL2Renderer::hexGridToScreenCoord(const int &gridRow, const int &gridCol, int &screenX, int &screenY) const
-{
-    int hexWidth = m_hexSize * 1.1;
-    int hexHeight = m_hexSize * 2;
-
-    // Apply hexagonal offset
-    screenX = m_gridStartX + gridCol * hexWidth + (gridRow % 2) * hexWidth / 2;
-    screenY = m_gridStartY + gridRow * hexHeight / 2.0;
-}
-
-void SDL2Renderer::gridToScreenCoord(const double &gridRow, const double &gridCol, int &screenX, int &screenY) const
-{
-    int hexWidth = m_hexSize * 1.1;
-    int hexHeight = m_hexSize * 2;
-
-    // Apply hexagonal offset
-    screenX = m_gridStartX + gridCol * hexWidth;
-    screenY = m_gridStartY + gridRow * hexHeight/2.0;
-}
-
-SDL_Color SDL2Renderer::bubbleColorToSDL(Bubble::Color color) const
-{
-    switch (color)
-    {
-    case Bubble::Color::Red:
-        return {255, 80, 80, 255};
-    case Bubble::Color::Green:
-        return {80, 255, 80, 255};
-    case Bubble::Color::Blue:
-        return {80, 120, 255, 255};
-    case Bubble::Color::Yellow:
-        return {255, 255, 80, 255};
-    case Bubble::Color::Purple:
-        return {200, 80, 255, 255};
-    case Bubble::Color::None:
-    default:
-        return {0, 0, 0, 0}; // black for empty
-    }
-}
-
-void SDL2Renderer::drawCircle(int centerX, int centerY, int radius, const SDL_Color &color, bool filled)
-{
-    if (!m_renderer)
-        return;
-
-    SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-
-    if (filled)
-    {
-        // Draw filled circle using Midpoint Circle Algorithm
-        for (int w = 0; w < radius * 2; w++)
-        {
-            for (int h = 0; h < radius * 2; h++)
-            {
-                int dx = w - radius;
-                int dy = h - radius;
-                if ((dx * dx + dy * dy) <= (radius * radius))
-                {
-                    SDL_RenderDrawPoint(m_renderer, centerX + dx, centerY + dy);
-                }
-            }
-        }
-    }
-    else
-    {
-        // Draw circle outline
-        int x = 0;
-        int y = radius;
-        int d = 3 - 2 * radius;
-
-        while (x <= y)
-        {
-            SDL_RenderDrawPoint(m_renderer, centerX + x, centerY + y);
-            SDL_RenderDrawPoint(m_renderer, centerX - x, centerY + y);
-            SDL_RenderDrawPoint(m_renderer, centerX + x, centerY - y);
-            SDL_RenderDrawPoint(m_renderer, centerX - x, centerY - y);
-            SDL_RenderDrawPoint(m_renderer, centerX + y, centerY + x);
-            SDL_RenderDrawPoint(m_renderer, centerX - y, centerY + x);
-            SDL_RenderDrawPoint(m_renderer, centerX + y, centerY - x);
-            SDL_RenderDrawPoint(m_renderer, centerX - y, centerY - x);
-
-            if (d < 0)
-            {
-                d = d + 4 * x + 6;
-            }
-            else
-            {
-                d = d + 4 * (x - y) + 10;
-                y--;
-            }
-            x++;
-        }
-    }
-}
-
-void SDL2Renderer::drawLine(double x1, double y1, double x2, double y2, const SDL_Color &color)
-{
-    if (!m_renderer)
-        return;
-    SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderDrawLine(m_renderer, static_cast<int>(x1), static_cast<int>(y1),
-                       static_cast<int>(x2), static_cast<int>(y2));
-}
-
-void SDL2Renderer::drawRect(int x, int y, int w, int h, const SDL_Color &color, bool filled)
-{
-    if (!m_renderer)
-        return;
-    SDL_Rect rect = {x, y, w, h};
-    SDL_SetRenderDrawColor(m_renderer, color.r, color.g, color.b, color.a);
-    if (filled)
-    {
-        SDL_RenderFillRect(m_renderer, &rect);
-    }
-    else
-    {
-        SDL_RenderDrawRect(m_renderer, &rect);
-    }
-}
+// Grid calculations and primitive drawing moved to helper classes
 
 void SDL2Renderer::render(const Board &board, const RenderStats &stats)
 {
@@ -248,28 +120,36 @@ void SDL2Renderer::render(const Board &board, const RenderStats &stats)
         for (std::size_t col = 0; col < GameSettings::Cols; ++col)
         {
             int screenX, screenY;
-            hexGridToScreenCoord(row + parityOffset, col, screenX, screenY);
+            if (m_gridUtils)
+                m_gridUtils->hexGridToScreenCoord(static_cast<int>(row) + parityOffset, static_cast<int>(col), screenX, screenY);
 
             Bubble::Color bubbleColor = board.get(row, col);
-            SDL_Color color = bubbleColorToSDL(bubbleColor);
-            drawCircle(screenX, screenY, m_hexSize / std::sqrt(3), color, true);
+            SDL_Color color = m_primitives ? m_primitives->bubbleColorToSDL(bubbleColor) : SDL_Color{0,0,0,0};
+            int radius = m_gridUtils ? static_cast<int>(m_gridUtils->getHexSize() / std::sqrt(3)) : 8;
+            if (m_primitives)
+                m_primitives->drawCircle(screenX, screenY, radius, color, true);
         }
     }
 
 
     // Draw launcher indicator
-    SDL_Color next_color = bubbleColorToSDL(stats.projectileColor);
+    SDL_Color next_color = m_primitives ? m_primitives->bubbleColorToSDL(stats.projectileColor) : SDL_Color{0,0,0,0};
     int screenX, screenY;
-    gridToScreenCoord(stats.y, stats.x, screenX, screenY);
-    drawCircle(screenX, screenY, m_hexSize / std::sqrt(3), next_color, true);
+    if (m_gridUtils)
+        m_gridUtils->gridToScreenCoord(stats.y, stats.x, screenX, screenY);
+    int radius = m_gridUtils ? static_cast<int>(m_gridUtils->getHexSize() / std::sqrt(3)) : 8;
+    if (m_primitives)
+        m_primitives->drawCircle(screenX, screenY, radius, next_color, true);
 
     //Draw next color preview
-    SDL_Color next_color_preview = bubbleColorToSDL(stats.nextColor);
-    gridToScreenCoord(stats.y, stats.x + GameSettings::Cols/2, screenX, screenY);
-    drawCircle(screenX, screenY, m_hexSize / std::sqrt(3), next_color_preview, true);
+    SDL_Color next_color_preview = m_primitives ? m_primitives->bubbleColorToSDL(stats.nextColor) : SDL_Color{0,0,0,0};
+    if (m_gridUtils)
+        m_gridUtils->gridToScreenCoord(stats.y, stats.x + GameSettings::Cols/2, screenX, screenY);
+    if (m_primitives)
+        m_primitives->drawCircle(screenX, screenY, radius, next_color_preview, true);
 
     // Draw aiming line if mouse is over game area
-    if (m_mouseX > m_gridStartX && m_mouseX < m_gridStartX + m_gridWidth &&
+    if (m_gridUtils && m_mouseX > m_gridUtils->getGridStartX() && m_mouseX < m_gridUtils->getGridStartX() + m_gridUtils->getGridWidth() &&
         m_mouseY > 0 && m_mouseY < m_windowHeight)
     {
         renderAimingLine(calculateAngleFromMouse());
@@ -280,8 +160,10 @@ void SDL2Renderer::render(const Board &board, const RenderStats &stats)
 
 double SDL2Renderer::calculateAngleFromMouse() const
 {
-    int dx = m_mouseX - m_launcherX;
-    int dy = m_mouseY - m_launcherY;
+    int launcherX = m_gridUtils ? m_gridUtils->getLauncherX() : 0;
+    int launcherY = m_gridUtils ? m_gridUtils->getLauncherY() : 0;
+    int dx = m_mouseX - launcherX;
+    int dy = m_mouseY - launcherY;
 
     // Calculate angle in degrees (0° is straight up)
     double radians = std::atan2(dx, -dy);
@@ -303,7 +185,8 @@ std::optional<double> SDL2Renderer::getMouseAngle() const
 
 void SDL2Renderer::renderAimingLine(double angle)
 {
-    if (!m_renderer)
+
+    if (!m_primitives)
         return;
 
     // Convert angle to radians (0° is up, increases clockwise)
@@ -321,26 +204,28 @@ void SDL2Renderer::renderAimingLine(double angle)
 
     // Calculate end point of aiming line
     int length = 100;
-    double endX = m_launcherX + length * std::sin(radians);
-    double endY = m_launcherY - length * std::cos(radians);
+    int launcherX = m_gridUtils ? m_gridUtils->getLauncherX() : 0;
+    int launcherY = m_gridUtils ? m_gridUtils->getLauncherY() : 0;
+
+    double endX = launcherX + length * std::sin(radians);
+    double endY = launcherY - length * std::cos(radians);
 
     // Draw aiming line
-    drawLine(m_launcherX, m_launcherY, endX, endY, AIMING_LINE_COLOR);
+    m_primitives->drawLine(launcherX, launcherY, endX, endY, AIMING_LINE_COLOR);
 }
 
 void SDL2Renderer::renderProjectile(const ProjectileInfo &trajectory)
 {
-    if (!trajectory.isValid || !m_renderer)
+    if (!trajectory.isValid || !m_primitives)
         return;
 
     // Draw trajectory line
-    drawLine(trajectory.startX, trajectory.startY, trajectory.endX, trajectory.endY,
-             {200, 100, 100, 128});
+    m_primitives->drawLine(trajectory.startX, trajectory.startY, trajectory.endX, trajectory.endY,
+             SDL_Color{200, 100, 100, 128});
 
     // Draw projectile at final position
-    SDL_SetRenderDrawColor(m_renderer, 200, 100, 100, 255);
-    drawCircle(static_cast<int>(trajectory.endX), static_cast<int>(trajectory.endY),
-               m_hexSize / 3, {200, 100, 100, 255}, true);
+    m_primitives->drawCircle(static_cast<int>(trajectory.endX), static_cast<int>(trajectory.endY),
+               m_gridUtils ? static_cast<int>(m_gridUtils->getHexSize() / 3) : 6, SDL_Color{200,100,100,255}, true);
 }
 
 void SDL2Renderer::pollEvents()
