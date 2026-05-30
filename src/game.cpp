@@ -8,12 +8,9 @@
 #include <thread>
 #include <chrono>
 
-namespace
-{
-    constexpr std::size_t kMinGroupSize = 3;
-} // namespace
 
-Game::Game() : m_board(kRows, kCols, m_colorManager)
+
+Game::Game() : m_board(GameSettings::Rows, GameSettings::Cols, m_colorManager)
 {
 }
 
@@ -25,14 +22,30 @@ void Game::printBoard(std::ostream &out) const
 bool Game::isGameOver() const
 {
     // Check if any bubble reached the bottom row
-    for (std::size_t col = 0; col < kCols; ++col)
+    for (std::size_t col = 0; col < GameSettings::Cols; ++col)
     {
-        if (m_board.get(kRows - 1, col) != Bubble::Color::None)
+        if (m_board.get(GameSettings::Rows - 1, col) != Bubble::Color::None)
         {
             return true;
         }
     }
     return false;
+}
+
+bool Game::hasWon() const
+{
+    for (std::size_t row = 0; row < m_board.rows(); ++row)
+    {
+        for (std::size_t col = 0; col < m_board.cols(); ++col)
+        {
+            if (m_board.get(row, col) != Bubble::Color::None)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 void Game::loop(SDL2Renderer *renderer)
@@ -45,7 +58,7 @@ void Game::loop(SDL2Renderer *renderer)
     double launcherY = static_cast<double>(m_board.rows()) - 1.0;
     Bubble::Color projectileColor = m_colorManager.getColor();
     // SDL2-based loop with dual input
-    while (renderer->isRunning() && !isGameOver())
+    while (renderer->isRunning() && !isGameOver() && !hasWon())
     {
         renderer->pollEvents();
 
@@ -62,9 +75,11 @@ void Game::loop(SDL2Renderer *renderer)
                 if (!attached.has_value())
                 {
                     std::cout << "Shot could not be attached to the grid. Try a different angle.\n";
+                    renderer->resetShootFlag();
+                    continue;
                 }
 
-                int cleared_bubbles = m_board.clearConnectedGroup(attached->first, attached->second, kMinGroupSize);
+                int cleared_bubbles = m_board.clearConnectedGroup(attached->first, attached->second, GameSettings::MinGroupSize);
                 std::cout << "Cleared " << cleared_bubbles << " bubbles.\n";
 
                 if (cleared_bubbles == 0)
@@ -77,7 +92,14 @@ void Game::loop(SDL2Renderer *renderer)
                     m_missCount = 0; // Reset miss counter on successful shot
                 }
 
-                if (m_missCount >= kMissesBeforeNewRow)
+                if (hasWon())
+                {
+                    std::cout << "You win! No bubbles remain.\n";
+                    renderer->requestClose();
+                    break;
+                }
+
+                if (m_missCount >= GameSettings::MissesBeforeNewRow)
                 {
                     std::cout << "Too many misses! A new row appears at the top.\n";
                     m_board.addNewRow(m_colorManager);
@@ -85,8 +107,8 @@ void Game::loop(SDL2Renderer *renderer)
                 }
 
             }
-                renderer->resetShootFlag();
-            
+            renderer->resetShootFlag();
+
             projectileColor = m_colorManager.getColor();
         }
 

@@ -7,7 +7,6 @@
 #include <deque>
 
 #include "bubble/include/bubble_color.hpp"
-
 /**
  * @brief Manages the game board state as a hexagonal grid of bubbles.
  *
@@ -40,8 +39,12 @@ public:
 
     /**
      * @brief Outputs a text representation of the board to a stream.
-     *
-     * Useful Gets the number of rows in the board.
+     * @param out Output stream to write to.
+     */
+    void print(std::ostream &out) const;
+
+    /**
+     * @brief Gets the number of rows in the board.
      * @return Row count for iteration bounds validation.
      */
     std::size_t rows() const noexcept;
@@ -68,8 +71,11 @@ public:
      * @param row Row index.
      * @param col Column index.
      * @return True if empty, false if occupied or out of bounds
-    bool inBounds(int row, int col) const noexcept;
-Retrieves the color of the bubble at the specified cell.
+     */
+    bool isEmpty(int row, int col) const noexcept;
+
+    /**
+     * @brief Retrieves the color of the bubble at the specified cell.
      * @param row Row index (must be in bounds).
      * @param col Column index (must be in bounds).
      * @return The bubble color at this cell.
@@ -115,36 +121,6 @@ Retrieves the color of the bubble at the specified cell.
     int clearConnectedGroup(std::size_t startRow, std::size_t startCol, std::size_t minGroupSize);
 
     /**
-     * @brief Adds a new row of random-colored bubbles at the top and shifts rows down.
-     *
-     * Used for game progression difficulty increase.
-     *
-     * @param colorManager Reference to ColorManager for generating random colors.
-     */Removes bubbles that are no longer connected to the top row.
-     *
-     * Implements gravity: bubbles must remain connected to row 0 to stay on board.
-     * Automatically called after clearConnectedGroup() or addNewRow().
-     *
-     * @return Number of bubbles removed by gravity.
-     */
-    int clearDetachedBubbles();
-
-    /**
-     * @brief Converts a bubble color to a character for text representation.
-     * @param color The bubble color to convert.
-     * @return Single character representing the color.
-     */
-    static char colorToChar(Bubble::Color color);
-
-    std::size_t m_rows;  ///< Number of rows in the hexagonal grid.
-    std::size_t m_cols;  ///< Number of columns in the hexagonal grid.
-    /// 2D grid of bubble colors stored as a deque of vectors for efficient row operations.
-    std::deque<std::vector<Bubble::Color>> m_board;
-    /// Reference to the color manager for tracking inventory of bubbles placed.
-    Bubble::ColorManager &m_colorManager;
-    /// Parity flag for hexagonal grid offset tracking during row manipulations.tartRow, std::size_t startCol, std::size_t minGroupSize);
-
-    /**
      * @brief Adds a new row of bubbles at the top and shifts existing rows down.
      * @param colorManager Reference to ColorManager for generating random colors.
      */
@@ -160,8 +136,8 @@ private:
     int clearDetachedBubbles();
     static char colorToChar(Bubble::Color color);
 
-    std::size_t m_rows;
-    std::size_t m_cols;
+    std::size_t m_rows; ///< Number of rows in the hexagonal grid.
+    std::size_t m_cols; ///< Number of columns in the hexagonal grid.
     std::deque<std::vector<Bubble::Color>> m_board;
     Bubble::ColorManager &m_colorManager;
     bool m_parity_offset{false};

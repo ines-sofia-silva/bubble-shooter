@@ -1,4 +1,5 @@
 #include "board.hpp"
+#include "defaults.hpp"
 
 #include <algorithm>
 #include <deque>
@@ -12,7 +13,7 @@ Board::Board(std::size_t rows, std::size_t cols, Bubble::ColorManager &colorMana
                                                                                        m_colorManager(colorManager)
 {
     // Only the top rows so projectiles have room to travel.
-    const std::size_t init_filled_rows = std::min<std::size_t>(3, m_rows);
+    const std::size_t init_filled_rows = std::min<std::size_t>(GameSettings::InitialFilledRows, m_rows);
 
     for (std::size_t row = 0; row < init_filled_rows; ++row)
     {
@@ -263,6 +264,7 @@ void Board::addNewRow(Bubble::ColorManager &colorManager)
         newRow[col] = colorManager.randomColor();
     }
     m_board.push_front(newRow);
+    m_board.pop_back(); // Remove the bottom row to maintain size
     m_parity_offset = !m_parity_offset;
 }
 

@@ -31,7 +31,7 @@ cmake --build build
 ```
 
 The game will:
-- Open an SDL2 graphics window (1024x768)
+- Open an SDL2 graphics window (500x700)
 - Display the game board with hexagonal bubbles
 - Show an aiming reticle that follows your mouse
 - Allow CLI angle input as a fallback if preferred
@@ -70,85 +70,11 @@ The game will:
 - Purple
 - Empty/None
 
-## Project Structure
-
-```text
-.
-|-- CMakeLists.txt
-|-- src/
-|   |-- main.cpp
-|   |-- game.h
-|   |-- game.cpp
-|   |-- board/
-|   |   |-- board.hpp
-|   |   |-- board.cpp
-|   |   `-- random.hpp
-|   |-- projectile/
-|   |   |-- projectile.hpp
-|   |   |-- collision.hpp
-|   |   |-- trajectory.hpp
-|   |   `-- (implementations)
-|   `-- renderer/
-|       |-- include/
-|       |   `-- sdl2_renderer.hpp
-|       |-- src/
-|       |   `-- sdl2_renderer.cpp
-|       `-- CMakeLists.txt
-|-- utils/
-|   `-- bubble/
-|       |-- include/
-|       |   `-- bubble_color.hpp
-|       |-- src/
-|       |   `-- bubble_color.cpp
-|       `-- test/
-|-- README.md
-`-- CMakeLists.txt
-```
-
-## Build
-
-From the project root:
-
-```bash
-cmake -S . -B build
-cmake --build build
-```
-
-## Run
-
-```bash
-./build/game
-```
-
-Example output shape:
-
-```text
-Simple Candy Crush CLI (Phase 1-2)
-Initial board:
-	0 1 2 3 4 5 6 7
-0 A C B E D A C B
-...
-```
 
 ## Next Milestones
 
-- Enhance SDL2 rendering with smooth animations for falling bubbles
-- Add font rendering for better stats display
-- Implement sound effects and background music
 - Create menu and game-over screens
 - Add particle effects for bubble clearing
 - Implement difficulty levels and scoring system
+- Implement scoring system
 
-## Technical Highlights
-
-### SDL2 Renderer Architecture
-The `SDL2Renderer` class encapsulates all graphics operations:
-- Hardware-accelerated rendering with SDL2
-- Hexagon geometry calculations for proper grid layout
-- Real-time mouse tracking and angle calculations
-- Color-to-RGB mapping from game logic enums
-- Clean separation between game logic and presentation
-
-## Notes
-
-The `build/` directory is intentionally ignored by Git via `.gitignore`.

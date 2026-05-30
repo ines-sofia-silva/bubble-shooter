@@ -293,7 +293,7 @@ private:
     int m_windowHeight{0};                 ///< Window height in pixels.
 
     // ===== Hexagonal Grid Layout =====
-    int m_hexSize{50};                     ///< Size of each hexagon cell in pixels.
+    int m_hexSize{};                     ///< Size of each hexagon cell in pixels.
     int m_gridStartX{0};                   ///< Left edge of grid area in window.
     int m_gridStartY{0};                   ///< Top edge of grid area in window.
     int m_gridWidth{0};                    ///< Total width of grid area in pixels.

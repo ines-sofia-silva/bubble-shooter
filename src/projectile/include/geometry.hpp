@@ -23,10 +23,7 @@
  * even rows have standard columnar alignment, while odd rows are shifted right by 0.5 units.
  */
 namespace ProjectileGeometry
-{
-    /// Pi constant used in angle and circle calculations.
-    inline constexpr double kPi = 3.14159265358979323846;
-    
+{    
     /// Collision detection radius in game coordinate units.
     /// Projectiles collide with bubbles when distance to cell center <= kCollisionRadius.
     inline constexpr double kCollisionRadius = 1.1;
@@ -70,11 +67,11 @@ namespace ProjectileGeometry
      * Standard degree-to-radian conversion used for trigonometric calculations
      * in physics simulation (e.g., computing velocity components from launch angle).
      *
-     * @param angleDegrees Angle in degrees (0° = right, 90° = up, 180° = left, 270° = down).
+     * @param angleDegrees Angle in degrees
      * @return Equivalent angle in radians.
      */
     inline double toRadians(double angleDegrees)
     {
-        return angleDegrees * (kPi / 180.0);
+        return angleDegrees * (M_PI / 180.0);
     }
 } // namespace ProjectileGeometry

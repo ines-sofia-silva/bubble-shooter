@@ -1,16 +1,12 @@
-#ifndef GAME_H
-#define GAME_H
+#pragma once
 
 #include "board.hpp"
 #include "bubble/include/bubble_color.hpp"
-
+#include "include/defaults.hpp"
 class SDL2Renderer;  // Forward declaration
 
 class Game {
 public:
-    static constexpr std::size_t kRows = 8;
-    static constexpr std::size_t kCols = 8;
-    static constexpr std::size_t kMissesBeforeNewRow = 3;
 
     Game();
 
@@ -19,9 +15,9 @@ public:
 
 private:
     bool isGameOver() const;
+    bool hasWon() const;
     Bubble::ColorManager m_colorManager;
     Board m_board;
     std::size_t m_missCount{0};
 };
 
-#endif

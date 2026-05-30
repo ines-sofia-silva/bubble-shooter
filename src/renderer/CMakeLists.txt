@@ -6,6 +6,7 @@ add_library(renderer
 
 target_include_directories(renderer PUBLIC include)
 target_include_directories(renderer PRIVATE src)
+target_include_directories(renderer PRIVATE ${CMAKE_SOURCE_DIR}/src/include)
 target_compile_features(renderer PRIVATE cxx_std_17)
 
 target_link_libraries(renderer PUBLIC SDL2::SDL2)

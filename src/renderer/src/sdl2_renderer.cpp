@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include "defaults.hpp"
 
 SDL2Renderer::SDL2Renderer() = default;
 
@@ -12,6 +13,7 @@ SDL2Renderer::~SDL2Renderer()
 
 bool SDL2Renderer::init(int windowWidth, int windowHeight, const char *title)
 {
+    m_hexSize = std::min(windowWidth / (GameSettings::Cols * 1.5), windowHeight / (GameSettings::Rows * 1.5));
     m_windowWidth = windowWidth;
     m_windowHeight = windowHeight;
 
@@ -109,8 +111,8 @@ void SDL2Renderer::calculateGridLayout()
     int hexHeight = m_hexSize;                  // Height of hexagon
 
     // Calculate grid dimensions
-    m_gridWidth = hexWidth * 8;   // Account for hex packing
-    m_gridHeight = hexHeight * 8; // Vertical packing
+    m_gridWidth = hexWidth * GameSettings::Cols;   // Account for hex packing
+    m_gridHeight = hexHeight * GameSettings::Rows; // Vertical packing
 
     // Center grid on screen
     m_gridStartX = (m_windowWidth - m_gridWidth) / 2;
@@ -153,7 +155,7 @@ SDL_Color SDL2Renderer::bubbleColorToSDL(Bubble::Color color) const
         return {200, 80, 255, 255};
     case Bubble::Color::None:
     default:
-        return {255, 255, 255, 255}; // white for empty
+        return {0, 0, 0, 0}; // black for empty
     }
 }
 
